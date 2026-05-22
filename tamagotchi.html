@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tamagotchi - Mi Mascota Virtual</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        :root { --lcd-bg-day: #a3b18a; --lcd-bg-night: #344e41; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Press Start 2P', cursive; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; }
+        .game-container { display: flex; gap: 20px; align-items: flex-start; }
+        .tamagotchi-case { width: 340px; height: 480px; background: linear-gradient(145deg, #ffb703, #fb8500); border-radius: 50% 50% 40% 40%; position: relative; box-shadow: inset -8px -8px 0px rgba(0,0,0,0.1), 8px 8px 20px rgba(0,0,0,0.3); border: 12px solid #d00000; display: flex; flex-direction: column; align-items: center; padding-top: 40px; }
+        .side-panel { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 15px; width: 280px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 500px; overflow-y: auto; }
+        .panel-section { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px dashed #ccc; }
+        .panel-section:last-child { border-bottom: none; }
+        .panel-title { font-size: 10px; color: #023047; margin-bottom: 10px; text-align: center; }
+        .coin-display { background: linear-gradient(145deg, #ffd700, #ffaa00); padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 8px; color: #023047; }
+        .level-display { background: linear-gradient(145deg, #9b5de5, #7b2cbf); padding: 8px; border-radius: 8px; font-size: 8px; color: white; text-align: center; margin-top: 5px; }
+        .xp-bar { height: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .xp-fill { height: 100%; background: #00ff88; transition: width 0.3s; }
+        .achievements-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .achievement { width: 40px; height: 40px; background: #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; opacity: 0.3; transition: all 0.3s; cursor: help; }
+        .achievement.unlocked { opacity: 1; background: linear-gradient(145deg, #ffd700, #ffaa00); box-shadow: 0 2px 8px rgba(255,215,0,0.5); animation: unlockPulse 0.5s; }
+        @keyframes unlockPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+        .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .shop-item { background: #f0f0f0; border: 2px solid #ddd; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: all 0.2s; font-size: 7px; }
+        .shop-item:hover { background: #e0e0e0; transform: translateY(-2px); }
+        .shop-item.owned { background: #c8e6c9; border-color: #4caf50; }
+        .pet-selector { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+        .pet-option { width: 50px; height: 50px; background: #f0f0f0; border: 3px solid transparent; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: all 0.2s; }
+        .pet-option:hover { transform: scale(1.1); }
+        .pet-option.selected { border-color: #4caf50; background: #c8e6c9; }
+        .pet-option.locked { filter: grayscale(1); opacity: 0.4; }
+        .mini-game-btn { background: linear-gradient(145deg, #ff6b6b, #ee5a5a); color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-family: inherit; font-size: 8px; cursor: pointer; margin-top: 5px; }
+        .mini-game-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255,107,107,0.4); }
+        .screen-border { width: 240px; height: 200px; background: #023047; border-radius: 15px; display: flex; justify-content: center; align-items: center; padding: 10px; }
+        .screen { width: 100%; height: 100%; background: var(--lcd-bg-day); border-radius: 8px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 8px; transition: all 0.5s; overflow: hidden; }
+        .screen.night { background: var(--lcd-bg-night); filter: brightness(0.8); }
+        .bg-default { background: var(--lcd-bg-day) !important; }
+        .bg-beach { background: linear-gradient(180deg, #87ceeb 0%, #f4e4bc 100%) !important; }
+        .bg-forest { background: linear-gradient(180deg, #90EE90 0%, #228B22 100%) !important; }
+        .bg-space { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important; }
+        .bg-rainbow { background: linear-gradient(180deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #9b5de5) !important; }
+        .sprite-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+        #petSprite { font-size: 64px; transition: transform 0.2s, filter 0.3s, opacity 0.5s; z-index: 5; }
+        .accessory { position: absolute; font-size: 24px; z-index: 6; pointer-events: none; }
+        .accessory-hat { top: 15px; } .accessory-glasses { top: 35px; } .accessory-scarf { bottom: 25px; }
+        .bubble { position: absolute; top: 5px; background: white; border: 2px solid #023047; padding: 4px; border-radius: 6px; font-size: 6px; max-width: 120px; text-align: center; line-height: 1.2; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 20; color: #023047; }
+        .bubble.active { opacity: 1; transform: translateY(0); }
+        .bubble::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-width: 6px 6px 0; border-style: solid; border-color: white transparent transparent; }
+        .effect { position: absolute; pointer-events: none; animation: floatUp 1s forwards; font-size: 20px; z-index: 10; }
+        @keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-50px) scale(1.5);opacity:0} }
+        .soul-effect { position: absolute; font-size: 40px; pointer-events: none; animation: soulAscend 3s forwards linear; z-index: 15; }
+        @keyframes soulAscend { 0%{transform:translateY(0) rotate(0deg);opacity:0} 20%{opacity:0.8} 100%{transform:translateY(-150px) rotate(20deg);opacity:0} }
+        .bounce { animation: bounce 0.5s infinite alternate; }
+        @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-10px)} }
+        .shake { animation: shake 0.2s infinite; }
+        @keyframes shake { 0%{transform:translate(1px,1px)} 50%{transform:translate(-1px,-1px)} 100%{transform:translate(1px,-1px)} }
+        .stats-container { display: flex; flex-direction: column; gap: 4px; }
+        .stat-row { display: flex; align-items: center; gap: 5px; font-size: 6px; }
+        .bar { flex-grow: 1; height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
+        .fill { height: 100%; background: #023047; width: 50%; transition: width 0.3s; }
+        .fill.danger { background: #e63946; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
+        .buttons { display: flex; gap: 15px; margin-top: 25px; }
+        .btn { width: 50px; height: 50px; background: linear-gradient(145deg, #219ebc, #023047); border-radius: 50%; border: none; box-shadow: 0 4px 0 #000; cursor: pointer; font-size: 20px; transition: all 0.1s; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #000; }
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); color: white; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; z-index: 30; font-size: 10px; border-radius: 8px; }
+        #musicToggle { cursor: pointer; font-size: 10px; padding: 5px; border-radius: 4px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 20px; border-radius: 15px; text-align: center; max-width: 400px; }
+        .clicker-target { width: 100px; height: 100px; background: #ff6b6b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 20px auto; cursor: pointer; user-select: none; transition: transform 0.1s; }
+        .clicker-target:active { transform: scale(0.9); }
+        .notification { position: fixed; top: 20px; right: 20px; background: linear-gradient(145deg, #ffd700, #ffaa00); color: #023047; padding: 15px 20px; border-radius: 10px; font-size: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transform: translateX(200%); transition: transform 0.3s; z-index: 200; }
+        .notification.show { transform: translateX(0); }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+    <div class="game-container">
+        <div class="tamagotchi-case">
+            <div class="screen-border">
+                <div class="screen bg-default" id="gameScreen">
+                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:8px;opacity:0.6;">
+                        <span id="stageLabel">HUEVO</span>
+                        <div style="display:flex;gap:8px;">
+                            <span id="musicToggle" onclick="toggleMusic()">🔇</span>
+                            <span id="timeIcon">☀️</span>
+                        </div>
+                    </div>
+                    <div class="sprite-container" id="spriteContainer">
+                        <div id="msgBubble" class="bubble">¡Hola!</div>
+                        <div id="petSprite" class="bounce">🥚</div>
+                        <div id="accessories"></div>
+                    </div>
+                    <div class="stats-container">
+                        <div class="stat-row">🍔 <div class="bar"><div id="h-fill" class="fill"></div></div></div>
+                        <div class="stat-row">🎾 <div class="bar"><div id="f-fill" class="fill"></div></div></div>
+                        <div class="stat-row">💤 <div class="bar"><div id="s-fill" class="fill"></div></div></div>
+                    </div>
+                    <div id="deathOverlay" class="overlay">
+                        <p style="margin-bottom:16px;">EL ALMA DE LA MASCOTA<br>HA ASCENDIDO...</p>
+                        <button onclick="resetGame()" style="background:white;color:black;padding:8px 16px;margin-top:8px;border:none;border-radius:4px;cursor:pointer;font-family:inherit;">NUEVA MASCOTA</button>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons">
+                <button class="btn" onclick="action('feed')" title="Comer">🍖</button>
+                <button class="btn" onclick="action('play')" title="Jugar">🎮</button>
+                <button class="btn" onclick="action('sleep')" title="Dormir">💤</button>
+            </div>
+            <div style="margin-top:24px;font-size:8px;color:white;display:flex;gap:24px;">
+                <span>COMER</span><span>JUGAR</span><span>DORMIR</span>
+            </div>
+        </div>
+        <div class="side-panel">
+            <div class="panel-section">
+                <div class="panel-title">ESTADÍSTICAS</div>
+                <div class="coin-display"><span>💰 MONEDAS</span><span id="coinCount">0</span></div>
+                <div class="level-display">
+                    <span>NIVEL <span id="levelNum">1</span></span>
+                    <div class="xp-bar"><div id="xpFill" class="xp-fill" style="width: 0%"></div></div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <div class="panel-title">MASCOTAS</div>
+                <div class="pet-selector" id="petSelector"></div>
+            </div>
+            <div class="panel-section">
+                <div class="panel-title">ACCESORIOS</div>
+                <div class="shop-grid" id="accessoriesShop"></div>
+            </div>
+            <div class="panel-section">
+                <div class="panel-title">FONDOS</div>
+                <div class="shop-grid" id="bgShop"></div>
+            </div>
+            <div class="panel-section">
+                <div class="panel-title">LOGROS</div>
+                <div class="achievements-grid" id="achievementsGrid"></div>
+            </div>
+            <div class="panel-section">
+                <div class="panel-title">MINI JUEGOS</div>
+                <button class="mini-game-btn" onclick="openClickerGame()">🎯 CLICK RÁPIDO<br><span style="font-size:6px">¡Gana monedas!</span></button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="gameModal">
+        <div class="modal-content">
+            <h2 style="font-size: 12px; color: #023047;">CLICK RÁPIDO</h2>
+            <p style="font-size: 8px; color: #666;">¡Haz click tantas veces como puedas!</p>
+            <p style="font-size: 8px;">Tiempo: <span id="gameTime">30</span>s | Clicks: <span id="clickCount">0</span></p>
+            <div class="clicker-target" id="clickTarget" onclick="handleClick()">🎯</div>
+            <button onclick="closeClickerGame()" style="background:#666;color:white;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-family:inherit;margin-top:10px;">CERRAR</button>
+        </div>
+    </div>
+    <script>
